@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Neuralyzer — MIB Prop</title>
+<style>
+  :root{
+    --bg:#0b0b0d;
+    --accent:#00ffcc;
+    --glass:#e6f9f3;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  .container{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;box-sizing:border-box;}
+  h1{font-size:1.6rem;margin:0;letter-spacing:1px}
+  p{max-width:720px;text-align:center;color:#cdd;}
+  .btn{
+    -webkit-tap-highlight-color: transparent;
+    background: linear-gradient(180deg,#222 0%, #0f0f12 100%);
+    border:1px solid rgba(255,255,255,0.06);
+    color:#fff;padding:12px 18px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.6);
+  }
+  .btn:active{transform:translateY(1px)}
+  .controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  /* full-screen flash overlay */
+  .flash-overlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#fff;opacity:0;pointer-events:none;z-index:9999;
+    transition:opacity 0.25s ease-out;
+  }
+  .flash-overlay.show{opacity:1;transition:opacity 0s;}
+  /* neuralyzer lens container shown during flash */
+  .lens-wrap{width:min(640px,92vw);height:auto;transform:translateY(0);display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  /* caption style */
+  .caption{font-size:0.9rem;color:#9af3d8;opacity:0.9}
+  /* fancy "MIB terminal" style box for the dossier area */
+  .terminal{
+    width:min(880px,95vw);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:12px;color:#bfeee0;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);backdrop-filter: blur(6px);
+  }
+  .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  /* Accessibility: prefers-reduced-motion respects */
+  @media (prefers-reduced-motion: reduce){
+    .flash-overlay{transition:none}
+  }
+
+  /* Neuralyzer SVG styling (glow + animation) */
+  .neuralyzer-svg { filter: drop-shadow(0 8px 30px rgba(0,255,200,0.12)); max-width:640px; width:100%; height:auto; }
+  .lens { transform-origin:50% 50%; animation: lens-pulse 1200ms cubic-bezier(.2,.9,.3,1) }
+  @keyframes lens-pulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+
+  footer{font-size:0.8rem;color:#889;padding-top:8px}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>NEURALYZER — FIELD DEMO</h1>
+    <p>Men In Black theatrical neuralyzer — tap the badge (or press the button) to trigger a flash and zap sound. Works on phones and desktops. If autoplay is blocked, first tap will enable sound and subsequent triggers will play immediately.</p>
+
+    <div class="controls">
+      <button id="zapBtn" class="btn" aria-label="Fire neuralyzer">FIRE NEURALYZER</button>
+      <button id="demoBtn" class="btn" aria-label="Play demonstration">SHOW DEMO SEQUENCE</button>
+    </div>
+
+    <div class="terminal" role="region" aria-live="polite">
+      <div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700;font-size:1rem">Agent ID: <span id="agentId">009-A</span></div>
+          <div style="color:#9ee;opacity:0.85">Status: <strong id="statusText">On standby</strong></div>
+        </div>
+        <div style="text-align:right">
+          <div class="caption">Flash count: <span id="count">0</span></div>
+        </div>
+      </div>
+      <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0;border-radius:2px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center">
+        <small>Tip: Use this page's URL for your NFC tag. When tapped, phones open it and the neuralyzer fires automatically.</small>
+      </div>
+    </div>
+
+    <footer>Built for cosplay. Respect others — this only simulates a flash/sound.</footer>
+  </div>
+
+  <!-- Flash overlay -->
+  <div id="flash" class="flash-overlay" aria-hidden="true">
+    <div class="lens-wrap" id="lensWrap">
+      <!-- Inline SVG neuralyzer (stylized) -->
+      <svg class="neuralyzer-svg" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Neuralyzer device">
+        <!-- body -->
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="30%" stop-color="#dffdf6"/>
+            <stop offset="70%" stop-color="#9ff4de"/>
+            <stop offset="100%" stop-color="#6ee8c9"/>
+          </radialGradient>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="18" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- device rectangle -->
+        <rect x="80" y="140" rx="40" ry="40" width="1040" height="320" fill="#0b0b0f" stroke="#041011" stroke-width="6"/>
+        <!-- lens -->
+        <g transform="translate(600,300)">
+          <ellipse class="lens" cx="0" cy="0" rx="300" ry="110" fill="url(#g1)" stroke="#e8fff7" stroke-width="4" filter="url(#glow)"/>
+          <!-- inner concentric rings -->
+          <g transform="translate(-22,0)">
+            <ellipse cx="0" cy="0" rx="230" ry="80" fill="none" stroke="#bff7ea" stroke-opacity="0.35" stroke-width="3"/>
+            <ellipse cx="0" cy="0" rx="160" ry="60" fill="none" stroke="#9ff0da" stroke-opacity="0.5" stroke-width="2"/>
+            <ellipse cx="0" cy="0" rx="98" ry="36" fill="none" stroke="#7be9c6" stroke-opacity="0.6" stroke-width="2"/>
+          </g>
+          <!-- light beams -->
+          <g transform="translate(-160,-120) rotate(-6)">
+            <rect x="0" y="-12" width="750" height="24" rx="12" fill="rgba(255,255,255,0.55)" transform="skewX(-12)"/>
+          </g>
+        </g>
+
+        <!-- tiny status LEDs -->
+        <circle cx="360" cy="220" r="6" fill="#2ef4c6"/>
+        <circle cx="410" cy="220" r="6" fill="#2ef4c6"/>
+        <circle cx="460" cy="220" r="6" fill="#2ef4c6"/>
+        <!-- label -->
+        <text x="110" y="460" fill="#9ee" font-family="monospace" font-size="22">M.I.B. — NEURALYZER FIELD UNIT</text>
+      </svg>
+    </div>
+  </div>
+
+<script>
+/*
+  Neuralyzer demo script
+  - Generates zap sound with WebAudio (no external audio file)
+  - Flashes a full-screen white overlay and shows the neuralyzer SVG briefly
+  - Plays on page load (if browser permits) and on button click
+  - Respects prefers-reduced-motion by shortening/avoiding animations
+*/
+
+(() => {
+  const flashEl = document.getElementById('flash');
+  const lensWrap = document.getElementById('lensWrap');
+  const btn = document.getElementById('zapBtn');
+  const demoBtn = document.getElementById('demoBtn');
+  const statusText = document.getElementById('statusText');
+  const countEl = document.getElementById('count');
+  let flashCount = 0;
+
+  // Web Audio setup (procedural zap sound)
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  // Procedural zap: a quick noise burst + pitch swoop
+  function playZap() {
+    const ctx = ensureAudio();
+    const now = ctx.currentTime;
+
+    // Master gain
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(1.0, now + 0.002);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+    master.connect(ctx.destination);
+
+    // Pitch sweep oscillator
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(900, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.45);
+
+    // Highpass to remove thump
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 80;
+
+    // Noise burst (for crackle)
+    const bufferSize = ctx.sampleRate * 0.15;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // create a decaying random noise
+      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.6;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 220;
+
+    // small distortion via waveshaper
+    function makeDistortionCurve(amount) {
+      const n = 44100;
+      const curve = new Float32Array(n);
+      const deg = Math.PI / 180;
+      for (let i = 0; i < n; ++i) {
+        const x = i * 2 / n - 1;
+        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+      }
+      return curve;
+    }
+    const shaper = ctx.createWaveShaper();
+    shaper.curve = makeDistortionCurve(20);
+    shaper.oversample = '2x';
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.value = 0.9;
+
+    // Connect nodes
+    osc.connect(hp);
+    hp.connect(shaper);
+    shaper.connect(master);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(master);
+
+    // Start & stop
+    osc.start(now);
+    noise.start(now);
+    osc.stop(now + 0.5);
+    noise.stop(now + 0.15);
+
+    // cleanup
+    setTimeout(()=> {
+      try { osc.disconnect(); noise.disconnect(); master.disconnect(); } catch(e){}
+    }, 1000);
+  }
+
+  // Flash routine
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function doFlash() {
+    // show overlay instantly
+    flashEl.classList.add('show');
+    flashCount += 1;
+    countEl.textContent = flashCount;
+    statusText.textContent = 'Activated';
+    // animate lens pulse (re-trigger by reflow)
+    if (!prefersReduced) {
+      const lens = lensWrap.querySelector('.lens');
+      if (lens) {
+        lens.classList.remove('active');
+        // force reflow
+        void lens.offsetWidth;
+        lens.classList.add('active');
+      }
+    }
+    // Hide after short delay (longer on reduced-motion)
+    const hideMs = prefersReduced ? 160 : 520;
+    setTimeout(()=> {
+      flashEl.classList.remove('show');
+      statusText.textContent = 'On standby';
+    }, hideMs);
+  }
+
+  // unified fire: resume audio if needed, play zap, show flash
+  async function fireNeuralyzer() {
+    try {
+      // resume audio context on some browsers
+      const ctx = ensureAudio();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+    } catch(e) {
+      // ignore resume errors
+    }
+    // play sound then flash (sound concurrent with flash for best effect)
+    try { playZap(); } catch(e){ console.warn('Audio failed', e); }
+    doFlash();
+  }
+
+  // auto-fire on load if allowed (many mobile browsers block autoplay until user interaction)
+  window.addEventListener('load', async () => {
+    // small delay so page can finish painting
+    setTimeout(async () => {
+      // Try to resume audio automatically; if it fails silently, user interaction will be required
+      try {
+        const ctx = ensureAudio();
+        if (ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        // some browsers still block play; we attempt a single zap
+        try { playZap(); doFlash(); } catch(e){}
+      } catch(e){}
+    }, 450);
+  });
+
+  // Buttons
+  btn.addEventListener('click', async () => {
+    // On first explicit user interaction, ensure audio context is unlocked
+    try {
+      const ctx = ensureAudio();
+      if (ctx.state === 'suspended') await ctx.resume();
+    } catch(e){}
+    await fireNeuralyzer();
+  });
+
+  // Demo sequence: 3 short flashes with cadence
+  demoBtn.addEventListener('click', async () => {
+    try { const ctx = ensureAudio(); if (ctx.state === 'suspended') await ctx.resume(); } catch(e){}
+    statusText.textContent = 'Demo sequence';
+    await fireNeuralyzer();
+    setTimeout(()=> fireNeuralyzer(), 800);
+    setTimeout(()=> fireNeuralyzer(), 1500);
+    setTimeout(()=> { statusText.textContent = 'On standby'; }, 2300);
+  });
+
+  // Expose a short window function so you can call from outside (optional)
+  window.fireNeuralyzer = fireNeuralyzer;
+
+  // If opened from an NFC tap that auto-opens the page, the load attempt above will try to play.
+})();
+</script>
+</body>
+</html>
