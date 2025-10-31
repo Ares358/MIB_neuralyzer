@@ -1,323 +1,354 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neuralyzer — MIB Prop</title>
-<style>
-  :root{
-    --bg:#0b0b0d;
-    --accent:#00ffcc;
-    --glass:#e6f9f3;
-  }
-  html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-  .container{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;box-sizing:border-box;}
-  h1{font-size:1.6rem;margin:0;letter-spacing:1px}
-  p{max-width:720px;text-align:center;color:#cdd;}
-  .btn{
-    -webkit-tap-highlight-color: transparent;
-    background: linear-gradient(180deg,#222 0%, #0f0f12 100%);
-    border:1px solid rgba(255,255,255,0.06);
-    color:#fff;padding:12px 18px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.6);
-  }
-  .btn:active{transform:translateY(1px)}
-  .controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
-  /* full-screen flash overlay */
-  .flash-overlay{
-    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-    background:#fff;opacity:0;pointer-events:none;z-index:9999;
-    transition:opacity 0.25s ease-out;
-  }
-  .flash-overlay.show{opacity:1;transition:opacity 0s;}
-  /* neuralyzer lens container shown during flash */
-  .lens-wrap{width:min(640px,92vw);height:auto;transform:translateY(0);display:flex;align-items:center;justify-content:center;pointer-events:none;}
-  /* caption style */
-  .caption{font-size:0.9rem;color:#9af3d8;opacity:0.9}
-  /* fancy "MIB terminal" style box for the dossier area */
-  .terminal{
-    width:min(880px,95vw);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:12px;color:#bfeee0;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.6);backdrop-filter: blur(6px);
-  }
-  .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-  /* Accessibility: prefers-reduced-motion respects */
-  @media (prefers-reduced-motion: reduce){
-    .flash-overlay{transition:none}
-  }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>MIB Neuralyzer - Classified</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; font-family: 'Courier New', monospace; overflow: hidden; position: relative; min-height: 100vh; }
 
-  /* Neuralyzer SVG styling (glow + animation) */
-  .neuralyzer-svg { filter: drop-shadow(0 8px 30px rgba(0,255,200,0.12)); max-width:640px; width:100%; height:auto; }
-  .lens { transform-origin:50% 50%; animation: lens-pulse 1200ms cubic-bezier(.2,.9,.3,1) }
-  @keyframes lens-pulse {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.12); }
-    100% { transform: scale(1); }
-  }
+        /* Matrix Rain Background */
+        .matrix-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: 1; opacity: 0; animation: fadeInMatrix 1s ease-out forwards; }
+        @keyframes fadeInMatrix { to { opacity: 1; } }
+        .matrix-column { position: absolute; top: -100%; font-size: clamp(10px, 2vw, 16px); line-height: 1.2; color: #00ff00; text-shadow: 0 0 5px #00ff00; animation: fall linear infinite; font-family: 'Courier New', monospace; }
+        @keyframes fall { to { transform: translateY(200vh); } }
+        /* NEW: fade out matrix after auth */
+        .matrix-bg.hide { opacity: 0; transition: opacity 1s ease; pointer-events: none; }
 
-  footer{font-size:0.8rem;color:#889;padding-top:8px}
-</style>
+        /* Authentication Screen */
+        .auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1s ease-out; }
+        .auth-screen.hide { opacity: 0; pointer-events: none; }
+
+        /* Scanning Grid Effect */
+        .scan-grid { position: absolute; width: 100%; height: 100%; background-image: linear-gradient(0deg, transparent 24%, rgba(0,255,0,0.05) 25%, rgba(0,255,0,0.05) 26%, transparent 27%, transparent 74%, rgba(0,255,0,0.05) 75%, rgba(0,255,0,0.05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(0,255,0,0.05) 25%, rgba(0,255,0,0.05) 26%, transparent 27%, transparent 74%, rgba(0,255,0,0.05) 75%, rgba(0,255,0,0.05) 76%, transparent 77%, transparent); background-size: 50px 50px; animation: grid-move 20s linear infinite; }
+        @keyframes grid-move { 0% { transform: translate(0,0); } 100% { transform: translate(50px, 50px); } }
+
+        .mib-logo { width: clamp(120px,25vw,180px); height: clamp(120px,25vw,180px); margin-bottom: 30px; background: linear-gradient(135deg, #0a0a0a, #1a1a1a); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 60px rgba(0,255,0,0.3), inset 0 0 60px rgba(0,255,0,0.1); position: relative; overflow: hidden; animation: logo-pulse 2s ease-in-out infinite; z-index: 10; }
+        @keyframes logo-pulse { 0%,100%{ box-shadow: 0 0 60px rgba(0,255,0,0.3), inset 0 0 60px rgba(0,255,0,0.1);} 50%{ box-shadow: 0 0 100px rgba(0,255,0,0.5), inset 0 0 80px rgba(0,255,0,0.2);} }
+        .mib-logo::before { content: "MIB"; font-size: clamp(40px,10vw,56px); font-weight: bold; color: #fff; text-shadow: 0 0 30px rgba(0,255,0,0.8), 0 0 60px rgba(0,255,0,0.5); z-index: 2; }
+        .mib-logo::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(0,255,0,0.3), transparent); animation: rotate-scanner 3s linear infinite; }
+        @keyframes rotate-scanner { 0% { transform: rotate(0);} 100% { transform: rotate(360deg);} }
+
+        .agent-profile { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; z-index: 10; }
+        .agent-pic-container { position: relative; margin-bottom: 20px; }
+        .agent-pic { width: clamp(100px,20vw,140px); height: clamp(100px,20vw,140px); border-radius: 50%; border: 3px solid transparent; background: url('data:image/jpeg+xml,<jpeg xmlns="https://github.com/Ares358/MIB_neuralyzer/blob/main/agentPic.jpeg" viewBox="0 0 100 100"><rect fill="%23222"/><circle cx="50" cy="30" r="15" fill="%23555"/><ellipse cx="50" cy="70" rx="30" ry="25" fill="%23555"/><text x="50" y="55" text-anchor="middle" fill="%23fff" font-size="10">AGENT</text></svg>') center/cover; box-shadow: 0 0 40px rgba(0,255,0,0.6); position: relative; overflow: hidden; }
+        .scan-ring { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120%; height: 120%; border: 2px solid #00ff00; border-radius: 50%; animation: scan-expand 2s ease-out infinite; }
+        @keyframes scan-expand { 0%{ width:100%; height:100%; opacity:1; border-width:3px;} 100%{ width:150%; height:150%; opacity:0; border-width:1px;} }
+
+        .status-container { background: rgba(0,0,0,0.7); border: 1px solid #00ff00; border-radius: 10px; padding: 15px 30px; margin-bottom: 25px; min-width: clamp(250px,60vw,400px); position: relative; z-index: 10; }
+        .status-text { color: #00ff00; font-size: clamp(14px,3vw,18px); text-align: center; text-transform: uppercase; min-height: 25px; letter-spacing: 2px; }
+        .typing-cursor::after { content: '_'; animation: cursor-blink 0.7s infinite; }
+        @keyframes cursor-blink { 0%,50%{opacity:1;} 51%,100%{opacity:0;} }
+
+        /* Progress */
+        .progress-container { width: clamp(250px,70vw,400px); margin: 20px 0; z-index: 10; position: relative; }
+        .progress-label { color: #00ff00; font-size: clamp(10px,2.5vw,12px); margin-bottom: 8px; text-transform: uppercase; display: flex; justify-content: space-between; }
+        .progress-bar { height: 8px; background: #0a0a0a; border: 1px solid #00ff00; border-radius: 10px; overflow: hidden; position: relative; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #00ff00, #00cc00); width: 0%; transition: width 0.5s ease-out; box-shadow: 0 0 10px rgba(0,255,0,0.8); position: relative; overflow: hidden; }
+        .progress-fill::after { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 2s infinite; }
+        @keyframes shimmer { 0%{ transform: translateX(-100%);} 100%{ transform: translateX(100%);} }
+
+        /* Security checks */
+        .security-check { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:20px 0; z-index:10; position:relative; }
+        .check-item { background: rgba(0,20,0,0.5); border:1px solid #00ff00; padding:8px 15px; border-radius:20px; font-size:clamp(10px,2.5vw,12px); color:#666; text-transform:uppercase; transition: all 0.3s ease; }
+        .check-item.active { background: rgba(0,255,0,0.1); color:#00ff00; box-shadow:0 0 15px rgba(0,255,0,0.5); }
+        .check-item.complete { background: rgba(0,255,0,0.2); color:#00ff00; }
+
+        .agent-designation { margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.8); border: 2px solid #00ff00; border-radius: 10px; z-index: 10; position: relative; opacity: 0; transform: translateY(20px); animation: slideUp 0.5s ease-out 5s forwards; }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        .designation-text { color: #fff; font-size: clamp(14px,3vw,18px); text-align: center; margin: 5px 0; }
+        .agent-code { color: #00ff00; font-size: clamp(24px,5vw,32px); font-weight: bold; text-shadow: 0 0 20px rgba(0,255,0,0.8); letter-spacing: 3px; }
+        .scan-line { position: absolute; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #00ff00, transparent); animation: scan 3s linear infinite; z-index: 5; }
+        @keyframes scan { 0% { transform: translateY(-100vh);} 100% { transform: translateY(100vh);} }
+
+        /* Main */
+        .main-container { display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:100vh; padding:20px; opacity:0; transition: opacity 1s ease-in; }
+        .main-container.show { opacity:1; }
+        h1 { color:#fff; font-size: clamp(2rem,6vw,3rem); margin-bottom:30px; text-transform:uppercase; letter-spacing:5px; text-shadow:0 0 30px rgba(255,255,255,0.5); text-align:center; }
+        .classified-stamp { color:#ff0000; font-size: clamp(12px,3vw,14px); font-weight:bold; letter-spacing:3px; margin-bottom:20px; animation: blink 3s infinite; }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+        .neuralyzer-device { width:100%; max-width:400px; margin:0 auto 40px; position:relative; cursor:pointer; transition: transform 0.3s ease; }
+        .neuralyzer-device:active { transform: scale(0.95); }
+        .neuralyzer-img { width:100%; height:auto; filter: drop-shadow(0 0 40px rgba(255,255,255,0.4)); transition: filter 0.3s ease; }
+        .neuralyzer-device:hover .neuralyzer-img { filter: drop-shadow(0 0 60px rgba(255,255,255,0.6)); }
+        .neuralyzer-fallback { width:100%; height:250px; background: linear-gradient(145deg, #2a2a2a, #1a1a1a); border-radius:20px; display:none; flex-direction:column; align-items:center; justify-content:center; position:relative; border:3px solid #444; box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 40px rgba(255,255,255,0.05); }
+        .flash-bulb { width:100px; height:100px; background: radial-gradient(circle, #fff, #ccc); border-radius:50%; box-shadow: 0 0 60px rgba(255,255,255,0.8), 0 0 100px rgba(255,255,255,0.5), inset 0 0 30px rgba(255,255,255,0.9); animation: glow 2s infinite; }
+        @keyframes glow { 0%,100%{ box-shadow: 0 0 60px rgba(255,255,255,0.8), 0 0 100px rgba(255,255,255,0.5), inset 0 0 30px rgba(255,255,255,0.9);} 50%{ box-shadow: 0 0 80px rgba(255,255,255,1), 0 0 120px rgba(255,255,255,0.7), inset 0 0 40px rgba(255,255,255,1);} }
+        .device-handle { width:60px; height:80px; background: linear-gradient(145deg,#333,#111); margin-top:20px; border-radius:10px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+        .activate-btn { background: linear-gradient(145deg,#1a5f7a,#0d3b4d); color:#fff; border:3px solid #2a8ba8; padding: clamp(12px,3vw,15px) clamp(30px,8vw,50px); font-size:clamp(1rem,3vw,1.3rem); font-weight:bold; text-transform:uppercase; letter-spacing:3px; cursor:pointer; border-radius:50px; transition: all 0.3s ease; box-shadow: 0 8px 25px rgba(26,95,122,0.5); position:relative; overflow:hidden; touch-action: manipulation; }
+        .activate-btn::before { content:''; position:absolute; top:50%; left:50%; width:0; height:0; border-radius:50%; background: rgba(255,255,255,0.3); transform: translate(-50%,-50%); transition: width 0.6s, height 0.6s; }
+        .activate-btn:hover::before { width:300px; height:300px; }
+        .activate-btn:active { transform: scale(0.95); box-shadow: 0 5px 15px rgba(26,95,122,0.7); }
+        @media (hover:hover){ .activate-btn:hover{ background: linear-gradient(145deg,#2a8ba8,#1a5f7a); box-shadow: 0 12px 35px rgba(26,95,122,0.7); transform: translateY(-3px);} }
+        .warning-text { color:#ff6b6b; font-size: clamp(0.8rem,2.5vw,1rem); margin-top:30px; opacity:0.8; text-align:center; animation: pulse-text 2s infinite; }
+        @keyframes pulse-text { 0%,100%{opacity:0.8;} 50%{opacity:1;} }
+
+        /* Flash Effect */
+        .flash-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: radial-gradient(circle, #ffffff, #f0f0f0); opacity:0; pointer-events:none; z-index:1500; }
+        .flash-overlay.active { animation: super-flash 2s ease-out; }
+        @keyframes super-flash { 0%{opacity:0;} 5%{opacity:1; background: radial-gradient(circle, #ffffff, #ffffff);} 15%{opacity:1; background: radial-gradient(circle, #ffffff, #f5f5f5);} 40%{opacity:0.9;} 65%{opacity:0.6;} 85%{opacity:0.3;} 100%{opacity:0;} }
+        .memory-wipe-text { position: fixed; top:50%; left:50%; transform: translate(-50%,-50%); color:#000; font-size: clamp(2.5rem,10vw,5rem); font-weight:bold; opacity:0; pointer-events:none; z-index:1501; text-shadow:0 0 50px rgba(255,255,255,1); white-space:nowrap; text-transform:uppercase; letter-spacing:10px; }
+        .memory-wipe-text.show { animation: wipeText 2s ease-in-out; }
+        @keyframes wipeText { 0%,100%{ opacity:0; transform: translate(-50%,-50%) scale(0.3) rotate(-5deg);} 10%{ opacity:1; transform: translate(-50%,-50%) scale(1.2) rotate(0deg);} 85%{ opacity:1; transform: translate(-50%,-50%) scale(1) rotate(0deg);} }
+        @keyframes device-shake { 0%,100%{ transform: translateX(0) translateY(0) rotate(0);} 20%{ transform: translateX(-10px) translateY(-3px) rotate(-2deg);} 40%{ transform: translateX(10px) translateY(3px) rotate(2deg);} 60%{ transform: translateX(-8px) translateY(-2px) rotate(-1deg);} 80%{ transform: translateX(8px) translateY(2px) rotate(1deg);} }
+        .shake { animation: device-shake 0.7s ease-in-out; }
+
+        /* Agent info */
+        .agent-info { position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8); border: 1px solid #00ff00; padding: 10px 15px; color: #00ff00; font-size: clamp(10px,2.5vw,12px); font-family: 'Courier New', monospace; border-radius: 5px; opacity: 0.7; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>NEURALYZER — FIELD DEMO</h1>
-    <p>Men In Black theatrical neuralyzer — tap the badge (or press the button) to trigger a flash and zap sound. Works on phones and desktops. If autoplay is blocked, first tap will enable sound and subsequent triggers will play immediately.</p>
+    <!-- Matrix Background -->
+    <div class="matrix-bg" id="matrixBg"></div>
 
-    <div class="controls">
-      <button id="zapBtn" class="btn" aria-label="Fire neuralyzer">FIRE NEURALYZER</button>
-      <button id="demoBtn" class="btn" aria-label="Play demonstration">SHOW DEMO SEQUENCE</button>
-    </div>
-
-    <div class="terminal" role="region" aria-live="polite">
-      <div style="display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:700;font-size:1rem">Agent ID: <span id="agentId">009-A</span></div>
-          <div style="color:#9ee;opacity:0.85">Status: <strong id="statusText">On standby</strong></div>
+    <!-- Authentication Loading Screen -->
+    <div class="auth-screen" id="authScreen">
+        <div class="scan-grid"></div>
+        <div class="scan-line"></div>
+        <div class="mib-logo"></div>
+        <div class="agent-profile">
+            <div class="agent-pic-container">
+                <div class="agent-pic"></div>
+                <div class="scan-ring"></div>
+            </div>
         </div>
-        <div style="text-align:right">
-          <div class="caption">Flash count: <span id="count">0</span></div>
+        <div class="status-container"><div class="status-text typing-cursor" id="statusText">INITIALIZING...</div></div>
+        <div class="progress-container">
+            <div class="progress-label">
+                <span id="progressLabel">SYSTEM BOOT</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
         </div>
-      </div>
-      <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0;border-radius:2px">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center">
-        <small>Tip: Use this page's URL for your NFC tag. When tapped, phones open it and the neuralyzer fires automatically.</small>
-      </div>
+        <div class="security-check">
+            <!-- UPDATED: quirky, phone-doable steps -->
+            <div class="check-item" id="check1">NFC BADGE TAP</div>
+            <div class="check-item" id="check2">GYROSCOPE ALIGNMENT</div>
+            <div class="check-item" id="check3">SHAKE TEST</div>
+            <div class="check-item" id="check4">CLEARANCE</div>
+            <div class="check-item" id="check5">NEURAL MAP</div>
+        </div>
+        <div class="agent-designation" id="agentDesignation">
+            <div class="designation-text">AUTHORIZATION CONFIRMED</div>
+            <div class="designation-text">NEURALYZER ACCESS GRANTED TO:</div>
+            <div class="designation-text agent-code">AGENT DESIGNATION: S</div>
+            <div class="designation-text" style="font-size: 12px; color: #888; margin-top: 10px;">CLEARANCE LEVEL: OMEGA</div>
+        </div>
     </div>
 
-    <footer>Built for cosplay. Respect others — this only simulates a flash/sound.</footer>
-  </div>
-
-  <!-- Flash overlay -->
-  <div id="flash" class="flash-overlay" aria-hidden="true">
-    <div class="lens-wrap" id="lensWrap">
-      <!-- Inline SVG neuralyzer (stylized) -->
-      <svg class="neuralyzer-svg" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Neuralyzer device">
-        <!-- body -->
-        <defs>
-          <radialGradient id="g1" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stop-color="#ffffff"/>
-            <stop offset="30%" stop-color="#dffdf6"/>
-            <stop offset="70%" stop-color="#9ff4de"/>
-            <stop offset="100%" stop-color="#6ee8c9"/>
-          </radialGradient>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="18" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-
-        <!-- device rectangle -->
-        <rect x="80" y="140" rx="40" ry="40" width="1040" height="320" fill="#0b0b0f" stroke="#041011" stroke-width="6"/>
-        <!-- lens -->
-        <g transform="translate(600,300)">
-          <ellipse class="lens" cx="0" cy="0" rx="300" ry="110" fill="url(#g1)" stroke="#e8fff7" stroke-width="4" filter="url(#glow)"/>
-          <!-- inner concentric rings -->
-          <g transform="translate(-22,0)">
-            <ellipse cx="0" cy="0" rx="230" ry="80" fill="none" stroke="#bff7ea" stroke-opacity="0.35" stroke-width="3"/>
-            <ellipse cx="0" cy="0" rx="160" ry="60" fill="none" stroke="#9ff0da" stroke-opacity="0.5" stroke-width="2"/>
-            <ellipse cx="0" cy="0" rx="98" ry="36" fill="none" stroke="#7be9c6" stroke-opacity="0.6" stroke-width="2"/>
-          </g>
-          <!-- light beams -->
-          <g transform="translate(-160,-120) rotate(-6)">
-            <rect x="0" y="-12" width="750" height="24" rx="12" fill="rgba(255,255,255,0.55)" transform="skewX(-12)"/>
-          </g>
-        </g>
-
-        <!-- tiny status LEDs -->
-        <circle cx="360" cy="220" r="6" fill="#2ef4c6"/>
-        <circle cx="410" cy="220" r="6" fill="#2ef4c6"/>
-        <circle cx="460" cy="220" r="6" fill="#2ef4c6"/>
-        <!-- label -->
-        <text x="110" y="460" fill="#9ee" font-family="monospace" font-size="22">M.I.B. — NEURALYZER FIELD UNIT</text>
-      </svg>
+    <!-- Main Neuralyzer Interface -->
+    <div class="main-container" id="mainContainer">
+        <div class="classified-stamp">★ CLASSIFIED - LEVEL OMEGA ★</div>
+        <h1>MEN IN BLACK</h1>
+        <h2 style="color:#888; font-size:clamp(14px,4vw,18px); margin-bottom:30px; letter-spacing:8px;">NEURALYZER v2.0</h2>
+        <div class="neuralyzer-device" id="neuralyzerDevice" onclick="activateNeuralyzer()">
+            <img src="https://static.wikia.nocookie.net/men-in-black/images/e/eb/Neuralizer1.png" alt="Neuralyzer Device" class="neuralyzer-img" onerror="this.style.display='none'; document.querySelector('.neuralyzer-fallback').style.display='flex';" />
+            <div class="neuralyzer-fallback"><div class="flash-bulb"></div><div class="device-handle"></div></div>
+        </div>
+        <button class="activate-btn" onclick="activateNeuralyzer()">⚡ ACTIVATE NEURALYZER ⚡</button>
+        <p class="warning-text">⚠️ WARNING: AUTHORIZED PERSONNEL ONLY<br/>Memory modification device - Use with extreme caution</p>
     </div>
-  </div>
 
-<script>
-/*
-  Neuralyzer demo script
-  - Generates zap sound with WebAudio (no external audio file)
-  - Flashes a full-screen white overlay and shows the neuralyzer SVG briefly
-  - Plays on page load (if browser permits) and on button click
-  - Respects prefers-reduced-motion by shortening/avoiding animations
-*/
+    <!-- Flash and Memory Wipe Effects -->
+    <div class="flash-overlay" id="flashOverlay"></div>
+    <div class="memory-wipe-text" id="memoryText">FORGET</div>
 
-(() => {
-  const flashEl = document.getElementById('flash');
-  const lensWrap = document.getElementById('lensWrap');
-  const btn = document.getElementById('zapBtn');
-  const demoBtn = document.getElementById('demoBtn');
-  const statusText = document.getElementById('statusText');
-  const countEl = document.getElementById('count');
-  let flashCount = 0;
+    <!-- Agent Info Panel -->
+    <div class="agent-info">Agent S | Clearance: OMEGA | Device: NRZ-2000</div>
 
-  // Web Audio setup (procedural zap sound)
-  let audioCtx = null;
-  function ensureAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return audioCtx;
-  }
+    <script>
+        // Initialize Audio Context for sound effects
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-  // Procedural zap: a quick noise burst + pitch swoop
-  function playZap() {
-    const ctx = ensureAudio();
-    const now = ctx.currentTime;
-
-    // Master gain
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(1.0, now + 0.002);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
-    master.connect(ctx.destination);
-
-    // Pitch sweep oscillator
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(900, now);
-    osc.frequency.exponentialRampToValueAtTime(150, now + 0.45);
-
-    // Highpass to remove thump
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 80;
-
-    // Noise burst (for crackle)
-    const bufferSize = ctx.sampleRate * 0.15;
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      // create a decaying random noise
-      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.6;
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuffer;
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'highpass';
-    noiseFilter.frequency.value = 220;
-
-    // small distortion via waveshaper
-    function makeDistortionCurve(amount) {
-      const n = 44100;
-      const curve = new Float32Array(n);
-      const deg = Math.PI / 180;
-      for (let i = 0; i < n; ++i) {
-        const x = i * 2 / n - 1;
-        curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
-      }
-      return curve;
-    }
-    const shaper = ctx.createWaveShaper();
-    shaper.curve = makeDistortionCurve(20);
-    shaper.oversample = '2x';
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.9;
-
-    // Connect nodes
-    osc.connect(hp);
-    hp.connect(shaper);
-    shaper.connect(master);
-
-    noise.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(master);
-
-    // Start & stop
-    osc.start(now);
-    noise.start(now);
-    osc.stop(now + 0.5);
-    noise.stop(now + 0.15);
-
-    // cleanup
-    setTimeout(()=> {
-      try { osc.disconnect(); noise.disconnect(); master.disconnect(); } catch(e){}
-    }, 1000);
-  }
-
-  // Flash routine
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function doFlash() {
-    // show overlay instantly
-    flashEl.classList.add('show');
-    flashCount += 1;
-    countEl.textContent = flashCount;
-    statusText.textContent = 'Activated';
-    // animate lens pulse (re-trigger by reflow)
-    if (!prefersReduced) {
-      const lens = lensWrap.querySelector('.lens');
-      if (lens) {
-        lens.classList.remove('active');
-        // force reflow
-        void lens.offsetWidth;
-        lens.classList.add('active');
-      }
-    }
-    // Hide after short delay (longer on reduced-motion)
-    const hideMs = prefersReduced ? 160 : 520;
-    setTimeout(()=> {
-      flashEl.classList.remove('show');
-      statusText.textContent = 'On standby';
-    }, hideMs);
-  }
-
-  // unified fire: resume audio if needed, play zap, show flash
-  async function fireNeuralyzer() {
-    try {
-      // resume audio context on some browsers
-      const ctx = ensureAudio();
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-    } catch(e) {
-      // ignore resume errors
-    }
-    // play sound then flash (sound concurrent with flash for best effect)
-    try { playZap(); } catch(e){ console.warn('Audio failed', e); }
-    doFlash();
-  }
-
-  // auto-fire on load if allowed (many mobile browsers block autoplay until user interaction)
-  window.addEventListener('load', async () => {
-    // small delay so page can finish painting
-    setTimeout(async () => {
-      // Try to resume audio automatically; if it fails silently, user interaction will be required
-      try {
-        const ctx = ensureAudio();
-        if (ctx.state === 'suspended') {
-          await ctx.resume();
+        // Create Matrix Rain Effect
+        function createMatrixRain() {
+            const matrixBg = document.getElementById('matrixBg');
+            const columns = Math.floor(window.innerWidth / 20);
+            for (let i = 0; i < columns; i++) {
+                const column = document.createElement('div');
+                column.className = 'matrix-column';
+                column.style.left = i * 20 + 'px';
+                column.style.animationDuration = Math.random() * 5 + 5 + 's';
+                column.style.animationDelay = Math.random() * 5 + 's';
+                let text = '';
+                const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+                for (let j = 0; j < 100; j++) { text += chars.charAt(Math.floor(Math.random() * chars.length)) + '<br>'; }
+                column.innerHTML = text;
+                matrixBg.appendChild(column);
+            }
         }
-        // some browsers still block play; we attempt a single zap
-        try { playZap(); doFlash(); } catch(e){}
-      } catch(e){}
-    }, 450);
-  });
 
-  // Buttons
-  btn.addEventListener('click', async () => {
-    // On first explicit user interaction, ensure audio context is unlocked
-    try {
-      const ctx = ensureAudio();
-      if (ctx.state === 'suspended') await ctx.resume();
-    } catch(e){}
-    await fireNeuralyzer();
-  });
+        // UPDATED: status messages aligned with quirky mobile checks
+        const statusMessages = [
+            'INITIALIZING SYSTEM...',
+            'CONNECTING TO MIB MAINFRAME...',
+            'PREPPING DEVICE SENSORS...',
+            'SCANNING NFC BADGE...',
+            'CALIBRATING GYROSCOPE...',
+            'PERFORMING SHAKE TEST...',
+            'CHECKING SECURITY CLEARANCE...',
+            'MAPPING NEURAL SIGNATURE...',
+            'AUTHENTICATION COMPLETE'
+        ];
 
-  // Demo sequence: 3 short flashes with cadence
-  demoBtn.addEventListener('click', async () => {
-    try { const ctx = ensureAudio(); if (ctx.state === 'suspended') await ctx.resume(); } catch(e){}
-    statusText.textContent = 'Demo sequence';
-    await fireNeuralyzer();
-    setTimeout(()=> fireNeuralyzer(), 800);
-    setTimeout(()=> fireNeuralyzer(), 1500);
-    setTimeout(()=> { statusText.textContent = 'On standby'; }, 2300);
-  });
+        // UPDATED: progress stages (DNA/Retina swapped for Gyro/Shake)
+        const progressStages = [
+            { label: 'SYSTEM BOOT', percent: 15 },
+            { label: 'NETWORK SYNC', percent: 30 },
+            { label: 'SENSOR CHECK', percent: 45 },
+            { label: 'GYRO CALIBRATION', percent: 60 },
+            { label: 'SHAKE TEST', percent: 75 },
+            { label: 'CLEARANCE CHECK', percent: 90 },
+            { label: 'FINALIZING', percent: 100 }
+        ];
 
-  // Expose a short window function so you can call from outside (optional)
-  window.fireNeuralyzer = fireNeuralyzer;
+        // Authentication sequence with progressive loading
+        function runAuthSequence() {
+            const statusText = document.getElementById('statusText');
+            const progressFill = document.getElementById('progressFill');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressLabel = document.getElementById('progressLabel');
+            const checks = ['check1', 'check2', 'check3', 'check4', 'check5'];
 
-  // If opened from an NFC tap that auto-opens the page, the load attempt above will try to play.
-})();
-</script>
+            let messageIndex = 0;
+            let stageIndex = 0;
+
+            const STATUS_STEP = 800; // ms per status line
+            const PROGRESS_STEP = 900; // ms per progress stage
+            const BASE_DELAY = 500;    // initial delay before sequences start
+            const FINISH_DELAY = 600;  // time after last status before transition
+
+            function updateStatus() {
+                if (messageIndex < statusMessages.length) {
+                    statusText.textContent = statusMessages[messageIndex];
+                    messageIndex++;
+                    // Activate security checks for messages 3..7 (5 checks)
+                    if (messageIndex >= 4 && messageIndex <= 8) { // because messageIndex incremented already
+                        const checkIndex = messageIndex - 4; // 0..4
+                        if (checkIndex < checks.length) {
+                            const checkElement = document.getElementById(checks[checkIndex]);
+                            checkElement.classList.add('active');
+                            setTimeout(() => checkElement.classList.add('complete'), 500);
+                        }
+                    }
+                    setTimeout(updateStatus, STATUS_STEP);
+                }
+            }
+
+            function updateProgress() {
+                if (stageIndex < progressStages.length) {
+                    const stage = progressStages[stageIndex];
+                    progressLabel.textContent = stage.label;
+                    progressPercent.textContent = stage.percent + '%';
+                    progressFill.style.width = stage.percent + '%';
+                    stageIndex++;
+                    setTimeout(updateProgress, PROGRESS_STEP);
+                }
+            }
+
+            setTimeout(updateStatus, BASE_DELAY);
+            setTimeout(updateProgress, BASE_DELAY);
+
+            // Dynamically compute finish timing based on message count
+            const finishTime = BASE_DELAY + statusMessages.length * STATUS_STEP + FINISH_DELAY;
+            setTimeout(() => {
+                const authScreen = document.getElementById('authScreen');
+                const mainContainer = document.getElementById('mainContainer');
+                const matrixBg = document.getElementById('matrixBg');
+                playAuthCompleteSound();
+                setTimeout(() => {
+                    authScreen.classList.add('hide');
+                    mainContainer.classList.add('show');
+                    // NEW: hide matrix effect after auth completes
+                    matrixBg.classList.add('hide');
+                    setTimeout(() => { matrixBg.style.display = 'none'; }, 1000);
+                    // NEW: auto-flash once on first reveal
+                    if (!window.__autoFlashed) {
+                        window.__autoFlashed = true;
+                        setTimeout(() => activateNeuralyzer(), 400);
+                    }
+                }, 300);
+            }, finishTime);
+        }
+
+        // Sounds
+        function playAuthCompleteSound() {
+            const now = audioContext.currentTime;
+            for (let i = 0; i < 3; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800 + (i * 200), now + i * 0.1);
+                gain.gain.setValueAtTime(0.3, now + i * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.2);
+                osc.connect(gain); gain.connect(audioContext.destination);
+                osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.2);
+            }
+        }
+
+        function playNeuralyzeSoundEffect() {
+            const now = audioContext.currentTime;
+            const chargeOsc = audioContext.createOscillator(); const chargeGain = audioContext.createGain();
+            chargeOsc.type = 'sine'; chargeOsc.frequency.setValueAtTime(2000, now); chargeOsc.frequency.exponentialRampToValueAtTime(6000, now + 0.3); chargeOsc.frequency.exponentialRampToValueAtTime(100, now + 1.8);
+            chargeGain.gain.setValueAtTime(0, now); chargeGain.gain.linearRampToValueAtTime(0.5, now + 0.2); chargeGain.gain.exponentialRampToValueAtTime(0.01, now + 1.8);
+            const bassOsc = audioContext.createOscillator(); const bassGain = audioContext.createGain();
+            bassOsc.type = 'triangle'; bassOsc.frequency.setValueAtTime(40, now + 0.2); bassOsc.frequency.exponentialRampToValueAtTime(20, now + 0.8);
+            bassGain.gain.setValueAtTime(0, now); bassGain.gain.setValueAtTime(0.6, now + 0.2); bassGain.gain.exponentialRampToValueAtTime(0.01, now + 1);
+            const flashOsc = audioContext.createOscillator(); const flashGain = audioContext.createGain();
+            flashOsc.type = 'square'; flashOsc.frequency.setValueAtTime(200, now + 0.2); flashOsc.frequency.exponentialRampToValueAtTime(50, now + 0.4);
+            flashGain.gain.setValueAtTime(0.4, now + 0.2); flashGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            const sparkleOsc = audioContext.createOscillator(); const sparkleGain = audioContext.createGain();
+            sparkleOsc.type = 'sine'; sparkleOsc.frequency.setValueAtTime(10000, now + 0.2); sparkleOsc.frequency.exponentialRampToValueAtTime(5000, now + 0.6);
+            sparkleGain.gain.setValueAtTime(0.3, now + 0.2); sparkleGain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+            const modOsc = audioContext.createOscillator(); const modGain = audioContext.createGain();
+            modOsc.type = 'sawtooth'; modOsc.frequency.setValueAtTime(15, now); modGain.gain.setValueAtTime(500, now);
+            const delay = audioContext.createDelay(); const delayGain = audioContext.createGain(); delay.delayTime.value = 0.15; delayGain.gain.value = 0.4;
+            modOsc.connect(modGain); modGain.connect(chargeOsc.frequency);
+            chargeOsc.connect(chargeGain); chargeGain.connect(audioContext.destination); chargeGain.connect(delay); delay.connect(delayGain); delayGain.connect(audioContext.destination);
+            bassOsc.connect(bassGain); bassGain.connect(audioContext.destination);
+            flashOsc.connect(flashGain); flashGain.connect(audioContext.destination);
+            sparkleOsc.connect(sparkleGain); sparkleGain.connect(audioContext.destination);
+            modOsc.start(now); chargeOsc.start(now); bassOsc.start(now + 0.2); flashOsc.start(now + 0.2); sparkleOsc.start(now + 0.2);
+            modOsc.stop(now + 1); chargeOsc.stop(now + 1.8); bassOsc.stop(now + 1); flashOsc.stop(now + 0.5); sparkleOsc.stop(now + 0.7);
+        }
+
+        function activateNeuralyzer() {
+            const flashOverlay = document.getElementById('flashOverlay');
+            const memoryText = document.getElementById('memoryText');
+            const device = document.getElementById('neuralyzerDevice');
+            device.classList.add('shake'); setTimeout(() => device.classList.remove('shake'), 700);
+            flashOverlay.classList.add('active');
+            memoryText.classList.add('show');
+            // Sound (may be blocked until first user gesture on some mobile browsers)
+            try { playNeuralyzeSoundEffect(); } catch(e) {}
+            if ('vibrate' in navigator) { navigator.vibrate([100, 50, 200]); }
+            setTimeout(() => { flashOverlay.classList.remove('active'); memoryText.classList.remove('show'); }, 2000);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', function() {
+            createMatrixRain();
+            runAuthSequence();
+        });
+
+        // Unlock audio on first interaction (mobile safety)
+        ['touchstart','click'].forEach(evt => document.addEventListener(evt, () => { if (audioContext.state === 'suspended') audioContext.resume(); }, { once: true }));
+
+        // Prevent double-tap zoom on mobile
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) { const now = Date.now(); if (now - lastTouchEnd <= 300) { event.preventDefault(); } lastTouchEnd = now; }, false);
+
+        // Keyboard shortcut
+        document.addEventListener('keydown', function(event) {
+            if (event.key === ' ' || event.key === 'Enter') {
+                const mainContainer = document.getElementById('mainContainer');
+                if (mainContainer.classList.contains('show')) activateNeuralyzer();
+            }
+        });
+
+        // Handle window resize for Matrix effect
+        window.addEventListener('resize', function() { const matrixBg = document.getElementById('matrixBg'); matrixBg.innerHTML = ''; createMatrixRain(); });
+    </script>
 </body>
 </html>
